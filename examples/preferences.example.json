@@ -1,0 +1,11 @@
+{
+  "likes": ["tomato"],
+  "dislikes": [],
+  "excluded_ingredients": [],
+  "allergens": [],
+  "protein_targets": {"beef": 1, "chicken": 1, "pork": 1},
+  "max_cook_time_minutes": 40,
+  "prefer_reheatable": true,
+  "require_reheatable": false,
+  "max_finishing_effort": null
+}

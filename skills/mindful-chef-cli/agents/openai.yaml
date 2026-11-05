@@ -1,0 +1,4 @@
+interface:
+  display_name: "Mindful Chef CLI"
+  short_description: "Plan Mindful Chef meals and reviewed delivery changes"
+  default_prompt: "Use $mindful-chef-cli to review my next Mindful Chef menu and propose meals that fit my household preferences."

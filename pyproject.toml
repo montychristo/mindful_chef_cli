@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mindful-chef-cli"
+version = "0.1.0"
+description = "An unofficial, local-first Mindful Chef CLI and meal-planning agent toolkit"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = ["httpx>=0.28,<1", "beautifulsoup4>=4.12,<5", "keyring>=25,<26"]
+classifiers = ["Development Status :: 3 - Alpha", "Environment :: Console", "Operating System :: MacOS", "Operating System :: POSIX :: Linux", "Programming Language :: Python :: 3"]
+
+[project.optional-dependencies]
+mcp = ["mcp>=1.20,<2"]
+dev = ["build>=1.2,<2", "ruff>=0.12,<1", "pip-audit>=2.9,<3"]
+
+[project.scripts]
+mindful_chef_cli = "mindful_chef_cli.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.data-files]
+"share/mindful_chef_cli" = ["AGENTS.md", "CLAUDE.md"]
+"share/mindful_chef_cli/docs" = ["docs/AGENTS.md", "docs/SECURITY.md", "docs/ACCEPTANCE.md", "docs/MAINTENANCE.md", "docs/CAPABILITY_COMPARISON.md", "docs/API_PUBLIC_RESEARCH.md"]
+"share/mindful_chef_cli/integrations" = ["integrations/codex.toml.example", "integrations/claude-code.json.example", "integrations/claude-desktop.json.example", "integrations/mcp.json.example"]
+"share/mindful_chef_cli/skills/mindful-chef-cli" = ["skills/mindful-chef-cli/SKILL.md"]
+"share/mindful_chef_cli/skills/mindful-chef-cli/agents" = ["skills/mindful-chef-cli/agents/openai.yaml"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "B", "S"]
+ignore = ["S101"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S105", "S106", "S108", "S311"]

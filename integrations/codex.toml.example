@@ -1,0 +1,4 @@
+# Replace the interpreter path with the one from `mindful_chef_cli setup`.
+[mcp_servers.mindful_chef_cli]
+command = "/absolute/path/to/mindful_chef_cli/.venv/bin/python"
+args = ["-m", "mindful_chef_cli", "mcp"]

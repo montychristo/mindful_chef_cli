@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "mindful_chef_cli": {
+      "type": "stdio",
+      "command": "/absolute/path/to/mindful_chef_cli/.venv/bin/python",
+      "args": ["-m", "mindful_chef_cli", "mcp"]
+    }
+  }
+}
