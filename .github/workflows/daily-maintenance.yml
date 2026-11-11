@@ -1,0 +1,115 @@
+name: Daily maintenance
+
+'on':
+  schedule:
+    - cron: '43 6 * * *'
+      timezone: Europe/London
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mindful-chef-cli-daily-maintenance
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  check:
+    if: github.repository == 'montychristo/mindful_chef_cli' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      report_b64: ${{ steps.report.outputs.report_b64 }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: '3.14'
+      - name: Install check dependencies
+        id: install
+        continue-on-error: true
+        run: |
+          python -m pip install --upgrade pip 'setuptools>=84.1' wheel
+          python -m pip install -e '.[mcp,dev]'
+      - name: Generate public health report
+        env:
+          INSTALL_OUTCOME: ${{ steps.install.outcome }}
+          XDG_STATE_HOME: ${{ runner.temp }}/mindful-chef-cli-state
+        run: |
+          if [[ "$INSTALL_OUTCOME" == 'success' ]]; then
+            python -m scripts.daily_maintenance
+          else
+            python -m scripts.daily_maintenance --bootstrap-failed
+          fi
+      - name: Pass changed report to publisher
+        id: report
+        run: |
+          report='docs/HEALTH.md'
+          report_status=$(git status --porcelain=v1 --untracked-files=all -- "$report")
+          if [[ -z "$report_status" ]]; then
+            echo 'No report change to publish.'
+            exit 0
+          fi
+          test -s "$report"
+          test ! -L "$report"
+          test "$(wc -c < "$report")" -le 49152
+          python scripts/check_public_tree.py
+          report_b64=$(base64 < "$report" | tr -d '\n')
+          printf 'report_b64=%s\n' "$report_b64" >> "$GITHUB_OUTPUT"
+
+  publish:
+    needs: check
+    if: github.repository == 'montychristo/mindful_chef_cli' && github.ref == 'refs/heads/main' && needs.check.outputs.report_b64 != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: true
+      - name: Commit health report
+        env:
+          REPORT_B64: ${{ needs.check.outputs.report_b64 }}
+        run: |
+          report='docs/HEALTH.md'
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -d docs
+          test ! -L docs
+          test ! -L "$report"
+          test "${#REPORT_B64}" -le 65536
+          printf '%s' "$REPORT_B64" | base64 --decode > "$report"
+          test "$(wc -c < "$report")" -le 49152
+          test "$(head -n 1 "$report")" = '# Daily maintenance'
+          checked_line=$(grep -m 1 -E '^\*\*Checked on [0-9]{4}-[0-9]{2}-[0-9]{2}\*\*$' "$report")
+          checked_date=${checked_line#'**Checked on '}
+          checked_date=${checked_date%'**'}
+          git fetch --no-tags --depth=1 origin refs/heads/main
+          if [[ "$(git rev-parse FETCH_HEAD)" != "$GITHUB_SHA" ]]; then
+            current_line=$(git show "FETCH_HEAD:$report" 2>/dev/null | grep -m 1 -E '^\*\*Checked on [0-9]{4}-[0-9]{2}-[0-9]{2}\*\*$' || true)
+            current_date=${current_line#'**Checked on '}
+            current_date=${current_date%'**'}
+            if [[ "$current_date" == "$checked_date" || "$current_date" > "$checked_date" ]]; then
+              echo "Daily maintenance is already recorded for $current_date."
+              exit 0
+            fi
+            echo 'Main advanced while checks ran. Dispatch this workflow on the latest main.' >&2
+            exit 1
+          fi
+          git add -- "$report"
+          if git diff --cached --quiet -- "$report"; then
+            exit 0
+          fi
+          bot_email=$(printf '%s@%s' '41898282+github-actions[bot]' 'users.noreply.github.com')
+          git -c core.hooksPath=/dev/null \
+            -c user.name='github-actions[bot]' -c user.email="$bot_email" \
+            commit --only -m "docs: record daily health check for $checked_date" -- "$report"
+          git -c core.hooksPath=/dev/null push origin HEAD:refs/heads/main

@@ -1,4 +1,25 @@
-# Read-only maintenance
+# Daily maintenance
+
+The upstream GitHub workflow runs at 06:43 Europe/London and commits the
+[public maintenance record](HEALTH.md) to `main` once per London calendar day.
+It checks the anonymous login form, menu and a sample recipe. It runs the offline
+tests, Ruff, the dependency audit and the public-tree privacy scan. The record
+shows failures and unavailable checks, including a dependency installation
+failure. A second run on the same date leaves the record in place.
+
+The workflow also checks official terms and Help Centre articles on signing in,
+recipe selection, portions, delivery deadlines, skips and past orders. It
+compares relevant page content with the last successful check. A changed source
+is a prompt to inspect what changed and whether it affects the CLI or skill.
+Source fingerprints and status labels appear in the record. The record's Git
+history preserves previous days.
+
+The check job runs with read permissions. A separate publishing job stages only
+the generated record. A concurrent push can cause publication to fail. In
+that case, run the workflow again on the current `main`. The workflow can also
+be run manually from GitHub Actions when a scheduled run is delayed or missed.
+
+## Local signed-in checks
 
 Run the checker with the same installed environment and profile used by the CLI:
 
@@ -31,36 +52,15 @@ calendar details or provider response bodies. An invalid receipt is reported
 and left intact for review. A blocked credential store is a coverage failure,
 not evidence that the public endpoints failed.
 
-## Standalone daily task prompt
+## Reviewing changes and failures
 
-Save the following prompt in an independent daily task, with the repository
-checkout as its working directory and its installed virtual environment. Use
-the intended local profile. Keep the task independent of its setup chat.
+The local maintenance task checks the hosted record, then reviews relevant
+website, Help Centre or Journal announcements and changed health results. A
+source change needs verification against the current CLI or skill before it
+justifies a repair. Recipe rotations and promotions are routine website changes.
 
-> Run the Mindful Chef CLI read-only maintenance check using the installed environment:
-> `.venv/bin/python scripts/healthcheck.py --profile default`.
-> Read its JSON result. Do not log in, ask for passwords, attempt authentication
-> repair, upgrade dependencies, edit the repository, apply plans, change meals,
-> skip/resume deliveries, or run any account mutation. Do not publish files or
-> send messages to other people. The checker owns its private health receipt.
-> If `changed` is false, remain quiet. If health changed to a failure, report the
-> failing check names and safe codes with a concrete proposed next step. If it
-> recovered, report recovery once. If a missing/expired login is newly detected,
-> explain that interactive local `mindful_chef_cli auth login` is needed; do not
-> attempt it. Report missing execution or storage access as a coverage gap.
-> Keep all account data and credentials out of task output and repository files.
-
-Choose a daily time appropriate to the machine's timezone and availability.
-Verify that the saved task is standalone and has no target chat dependency.
-Do not create a second active schedule for the same profile. Local machine
-schedulers can run the same command directly; use an absolute interpreter and
-checkout path in that machine's scheduler configuration. This repository does
-not install a scheduler or create a cloud task automatically.
-
-## Reviewing a failure
-
-Re-run the single relevant read check manually when useful. Authentication
-renewal remains an interactive user action. A changed upstream contract needs
-source review, synthetic regression fixtures and the normal tests before a fix
-is adopted. Never keep trying mutations to diagnose a read failure or replay an
-uncertain write. A routine checker is not permission to change account state.
+Use a separate worktree for targeted fixes, dependency updates and project
+guidance changes. Run the relevant tests and the privacy scan before publishing
+a repair. Credentials and signed-in health results stay in local storage.
+Authentication renewal requires the user to log in interactively. Investigate
+provider write behavior with read-only evidence and synthetic fixtures.

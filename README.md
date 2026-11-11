@@ -210,11 +210,11 @@ The authenticated mode verifies orders and an editable cart when available.
 Health checks never submit orders, skip/resume deliveries, log in automatically,
 or probe write routes. A healthy read check does not prove mutation endpoints work.
 
-The daily runner records a small private health fingerprint, reports changed
-failures/recovery, and checks an existing CLI session when available. Its saved
-prompt template is in [`docs/MAINTENANCE.md`](docs/MAINTENANCE.md). A GitHub Actions
-workflow checks synthetic tests, lint, privacy and dependencies without account
-secrets. Live account checks stay local and are never run in hosted CI.
+GitHub Actions publishes one dated [maintenance record](docs/HEALTH.md) per day
+with public website checks, test results, dependency audit status and changes to
+official Mindful Chef guidance. Each commit records the checks that actually ran.
+Signed-in checks and their results stay on the local machine. See the
+[maintenance guide](docs/MAINTENANCE.md) for source coverage and the repair process.
 
 See the source-backed [HelloFresh capability comparison](docs/CAPABILITY_COMPARISON.md)
 for implemented differences and remaining opportunities, including provider
