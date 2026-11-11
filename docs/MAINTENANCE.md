@@ -54,10 +54,13 @@ not evidence that the public endpoints failed.
 
 ## Reviewing changes and failures
 
-The local maintenance task checks the hosted record, then reviews relevant
-website, Help Centre or Journal announcements and changed health results. A
-source change needs verification against the current CLI or skill before it
-justifies a repair. Recipe rotations and promotions are routine website changes.
+The local maintenance task checks the hosted record and runs
+`.venv/bin/python -m scripts.provider_updates` for a second view of the public
+sources. This catches updates when the storefront is unreachable from GitHub's
+runner. It retains the last successful source fingerprints in local state and
+prints only public source links and status labels. The task also reviews relevant
+website, Help Centre or Journal announcements. Verify whether changes affect the
+CLI or skill before making a repair. Recipe rotations and promotions are routine.
 
 Use a separate worktree for targeted fixes, dependency updates and project
 guidance changes. Run the relevant tests and the privacy scan before publishing

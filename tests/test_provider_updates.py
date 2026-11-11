@@ -1,10 +1,13 @@
 """Synthetic HTTP contracts for the public provider monitor."""
 
 import json
+from pathlib import Path
+from tempfile import TemporaryDirectory
 import unittest
 
 import httpx
 
+from mindful_chef_cli.storage import SecureStore
 from scripts import provider_updates
 
 
@@ -116,6 +119,16 @@ class ProviderUpdateTests(unittest.TestCase):
         self.assertEqual({key for key, result in results.items() if result["digest"] is None},
                          {"portion_help", "skip_help"})
         self.assertNotIn("Unexpected public error page", json.dumps(results))
+
+    def test_local_monitor_recovers_the_baseline_after_an_outage(self):
+        terms = provider_updates.SOURCES[0]
+        with TemporaryDirectory() as directory:
+            store = SecureStore(profile="provider-monitor", state_dir=Path(directory).resolve())
+            for digest, expected in (
+                ("a" * 64, "baseline"), (None, "unavailable"), ("b" * 64, "changed"), ("b" * 64, "unchanged"),
+            ):
+                result = provider_updates.record_sources(store, [{**terms, "digest": digest}])
+                self.assertEqual(result, [{**terms, "status": expected}])
 
 
 if __name__ == "__main__":

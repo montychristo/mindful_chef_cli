@@ -4,10 +4,13 @@ from hashlib import sha256
 from html import unescape
 import json
 import re
+import sys
 import unicodedata
 
 from bs4 import BeautifulSoup, Tag
 import httpx
+
+from mindful_chef_cli.storage import SecureStore, StorageError
 
 
 _HELP = "https://help.mindfulchef.com/en/articles/"
@@ -152,3 +155,41 @@ def check_sources(*, transport: httpx.BaseTransport | None = None) -> list[dict[
                 digest = None
             results.append({**source, "digest": digest, "status": "ok" if digest else "unavailable"})
     return results
+
+
+def record_sources(store: SecureStore, sources: list[dict[str, str | None]]) -> list[dict[str, str]]:
+    """Compare local public sources and retain the last successful baseline."""
+    known = {source["key"] for source in SOURCES}
+    results = []
+    with store.lock():
+        previous = store.read_private_json("provider-last.json", {})
+        if not isinstance(previous, dict) or any(
+            key not in known or not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value)
+            for key, value in previous.items()
+        ):
+            raise StorageError("Invalid provider monitor state")
+        for source in sources:
+            key, digest = source["key"], source["digest"]
+            prior = previous.get(key)
+            status = "unavailable"
+            if digest is not None:
+                status = "baseline" if prior is None else "unchanged" if digest == prior else "changed"
+                previous[key] = digest
+            results.append({"key": key, "label": source["label"], "url": source["url"], "status": status})
+        store.write_private_json("provider-last.json", previous)
+    return results
+
+
+def main() -> int:
+    try:
+        store = SecureStore(profile="provider-monitor")
+        results = record_sources(store, check_sources())
+    except StorageError:
+        print("Provider monitor state is unavailable.", file=sys.stderr)
+        return 1
+    print(json.dumps(results))
+    return int(any(source["status"] == "unavailable" for source in results))
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
